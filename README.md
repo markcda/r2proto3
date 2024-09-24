@@ -27,3 +27,7 @@ Here we go!
 Services and RPC are not supported for now. Anyway, you should write these with `tonic` library.
 
 Supported map types are `std::collections::HashMap` and `std::collections::BTreeMap`.
+
+## Warning!
+
+I'm sad to say this but you can't rely on real type definitions and should only import `tonic`-builted types for usage. This is huge disadvantage.
