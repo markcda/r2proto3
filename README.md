@@ -21,3 +21,9 @@ r2proto3 --crate-root {path to crate} --output-file generated.proto
 ```
 
 Here we go!
+
+## Notes
+
+Services and RPC are not supported for now. Anyway, you should write these with `tonic` library.
+
+Supported map types are `std::collections::HashMap` and `std::collections::BTreeMap`.
