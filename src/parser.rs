@@ -11,7 +11,6 @@ use crate::utils::{MResult, R2Proto3Error};
 // NOTE: ToProtobuf
 pub(crate) struct ProtobufField {
   pub name: String,
-  pub rust_type: String,
   pub proto3_type: String,
   pub field_num: i32,
 }
@@ -27,13 +26,7 @@ pub(crate) struct ProtobufEnumVariant {
 pub(crate) enum ProtobufEntityType {
   Message(Vec<ProtobufField>),
   Enum(Vec<ProtobufEnumVariant>),
-  Rpc,
-}
-
-// NOTE: ToProtobuf
-pub(crate) struct ProtobufEntity {
-  pub entity_type: ProtobufEntityType,
-  pub name: String,
+  // Rpc,
 }
 
 // NOTE: ToProtobuf
@@ -41,17 +34,15 @@ pub(crate) struct Parser<'a> {
   struct_re: Regex,
   enum_re: Regex,
   pub crate_name: &'a str,
-  ignore_rpc: bool,
   panic_to_unsupported: bool,
   verbose: bool,
   types_parser: TypesParser,
-  pub types: BTreeMap<String, ProtobufEntity>,
+  pub types: BTreeMap<String, ProtobufEntityType>,
 }
 
 impl<'a> Parser<'a> {
   pub(crate) fn new(
     crate_name: &'a str,
-    ignore_rpc: bool,
     panic_to_unsupported: bool,
     verbose: bool,
   ) -> MResult<Self> {
@@ -62,7 +53,6 @@ impl<'a> Parser<'a> {
         enum_re: Regex::new(r##"// NOTE: ToProtobuf[a-z\n() ]*enum ([a-zA-Z0-9_]*)[ ]?\{([\w\n\s():<>'",/\-_=#\[\]]*)}"##)
           .map_err(|e| R2Proto3Error::new(Some(Box::new(e)), "Не удалось собрать регулярное выражение для перечислений"))?,
         crate_name,
-        ignore_rpc,
         panic_to_unsupported,
         verbose,
         types_parser: TypesParser::new()?,
@@ -129,10 +119,7 @@ impl<'a> Parser<'a> {
       match self.parse_struct_fields(&message.1, &known_types) {
         Ok(fields) => {
           if self.verbose { println!("Parsed fields: {:?}", fields); }
-          self.types.insert(message.0.to_owned(), ProtobufEntity {
-            entity_type: ProtobufEntityType::Message(fields),
-            name: message.0.to_owned(),
-          });
+          self.types.insert(message.0.to_owned(), ProtobufEntityType::Message(fields));
         },
         Err(e) => {
           if self.panic_to_unsupported {
@@ -148,10 +135,7 @@ impl<'a> Parser<'a> {
       match self.parse_enum_fields(&r#enum.1) {
         Ok(variants) => {
           if self.verbose { println!("Parsed variants: {:?}", variants); }
-          self.types.insert(r#enum.0.to_owned(), ProtobufEntity {
-            entity_type: ProtobufEntityType::Enum(variants),
-            name: r#enum.0.to_owned(),
-          });
+          self.types.insert(r#enum.0.to_owned(), ProtobufEntityType::Enum(variants));
         },
         Err(e) => {
           if self.panic_to_unsupported {
@@ -180,7 +164,6 @@ impl<'a> Parser<'a> {
         fields.push(ProtobufField {
           name: format!("anonymous_value_{}", value_cntr),
           proto3_type: self.types_parser.rust_type_to_protobuf(&rust_type, known_types, false)?.to_owned(),
-          rust_type,
           field_num: value_cntr,
         });
       }
@@ -190,7 +173,6 @@ impl<'a> Parser<'a> {
         fields.push(ProtobufField {
           name,
           proto3_type: self.types_parser.rust_type_to_protobuf(&rust_type, known_types, false)?.to_owned(),
-          rust_type,
           field_num: value_cntr,
         });
       }
@@ -231,7 +213,7 @@ impl<'a> Parser<'a> {
     let mut contents = r#"syntax = "proto3";"#.to_owned() + "\n";
     
     for (type_name, r#type) in &self.types {
-      match &r#type.entity_type {
+      match &r#type {
         ProtobufEntityType::Message(msg) => {
           contents += "\n";
           contents += &format!("message {} {{", type_name);
@@ -250,7 +232,7 @@ impl<'a> Parser<'a> {
           }
           contents += "\n}\n";
         },
-        _ => unimplemented!(),
+        // _ => unimplemented!(),
       }
     }
     

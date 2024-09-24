@@ -22,8 +22,8 @@ struct Args {
   #[arg(short, long)]
   crate_root: String,
   /// Ignore functions (rpc-services)
-  #[arg(short, long, default_value = "false")]
-  ignore_rpc: bool,
+  // #[arg(short, long, default_value = "false")]
+  // ignore_rpc: bool,
   /// Panic when marked type cannot be translated into Protobuf 3
   #[arg(short, long, default_value = "false")]
   panic_to_unsupported: bool,
@@ -45,7 +45,7 @@ fn main() {
   }));
   
   let args = Args::parse();
-  let mut parser = Parser::new(&args.crate_root, args.ignore_rpc, args.panic_to_unsupported, args.verbose).unwrap();
+  let mut parser = Parser::new(&args.crate_root, args.panic_to_unsupported, args.verbose).unwrap();
   match parser.parse() {
     Err(err) => panic!("{}", err),
     Ok(()) => {
